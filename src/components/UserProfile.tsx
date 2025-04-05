@@ -1,18 +1,21 @@
+
 import React, { useState } from 'react';
 import { Camera, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { peerDiscovery } from '@/utils/peerDiscovery';
 
 interface UserProfileProps {
-  onComplete: (profile: { name: string; avatar?: string }) => void;
+  onComplete: (profile: { name: string; avatar?: string; peerId?: string }) => void;
 }
 
 const UserProfile: React.FC<UserProfileProps> = ({ onComplete }) => {
   const [name, setName] = useState('');
   const [avatar, setAvatar] = useState<string | undefined>(undefined);
   const [isUploading, setIsUploading] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(false);
 
   const handleNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setName(event.target.value);
@@ -35,15 +38,30 @@ const UserProfile: React.FC<UserProfileProps> = ({ onComplete }) => {
     }
   };
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (name.trim()) {
-      const profile = { name, avatar };
+      setIsInitializing(true);
       
-      // Store profile in localStorage for use by peer discovery
-      localStorage.setItem('userProfile', JSON.stringify(profile));
-      
-      onComplete(profile);
+      try {
+        // Initialize peer discovery to get a peer ID
+        const peerId = await peerDiscovery.initialize(name, avatar);
+        
+        const profile = { name, avatar, peerId };
+        
+        // Store profile in localStorage for use by peer discovery
+        localStorage.setItem('userProfile', JSON.stringify(profile));
+        
+        onComplete(profile);
+      } catch (error) {
+        console.error('Failed to initialize peer discovery:', error);
+        // Continue without peer ID
+        const profile = { name, avatar };
+        localStorage.setItem('userProfile', JSON.stringify(profile));
+        onComplete(profile);
+      } finally {
+        setIsInitializing(false);
+      }
     }
   };
 
@@ -99,9 +117,9 @@ const UserProfile: React.FC<UserProfileProps> = ({ onComplete }) => {
         <Button 
           type="submit" 
           className="w-full gradient-bg"
-          disabled={!name.trim() || isUploading}
+          disabled={!name.trim() || isUploading || isInitializing}
         >
-          Continue
+          {isInitializing ? 'Initializing...' : 'Continue'}
         </Button>
       </form>
     </div>
