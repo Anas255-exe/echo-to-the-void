@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Camera, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -39,7 +38,12 @@ const UserProfile: React.FC<UserProfileProps> = ({ onComplete }) => {
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
     if (name.trim()) {
-      onComplete({ name, avatar });
+      const profile = { name, avatar };
+      
+      // Store profile in localStorage for use by peer discovery
+      localStorage.setItem('userProfile', JSON.stringify(profile));
+      
+      onComplete(profile);
     }
   };
 

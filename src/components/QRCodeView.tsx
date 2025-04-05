@@ -2,21 +2,36 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { generateConnectionQRData } from '@/utils/offlineUtils';
+import { generatePeerConnectionQRData, peerDiscovery } from '@/utils/peerDiscovery';
 import { QrCode } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
 
 const QRCodeView: React.FC = () => {
   const [qrData, setQrData] = useState<string>('');
+  const [usingPeerDiscovery, setUsingPeerDiscovery] = useState(false);
 
   useEffect(() => {
-    const userId = 'current-user'; // In a real app, this would be the actual user ID
-    setQrData(generateConnectionQRData(userId));
+    initializeQRCode();
   }, []);
 
+  const initializeQRCode = () => {
+    // Try to use real peer discovery QR code first
+    const peerQRData = generatePeerConnectionQRData();
+    
+    if (peerQRData) {
+      setQrData(peerQRData);
+      setUsingPeerDiscovery(true);
+    } else {
+      // Fall back to simulated QR code
+      const userId = 'current-user'; // In a real app, this would be the actual user ID
+      setQrData(generateConnectionQRData(userId));
+      setUsingPeerDiscovery(false);
+    }
+  };
+
   const refreshQRCode = () => {
-    const userId = 'current-user';
-    setQrData(generateConnectionQRData(userId));
+    initializeQRCode();
     
     toast({
       title: "QR Code Refreshed",
@@ -29,9 +44,21 @@ const QRCodeView: React.FC = () => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Quick Connect</CardTitle>
+        <CardTitle>
+          Quick Connect
+          {usingPeerDiscovery && (
+            <span className="ml-2 text-xs font-normal text-muted-foreground">
+              (WebRTC Enabled)
+            </span>
+          )}
+        </CardTitle>
         <CardDescription>
           Let others scan this code to connect with you directly
+          {usingPeerDiscovery && (
+            <div className="mt-2 text-xs p-2 bg-echomesh-primary/10 rounded-md">
+              <strong>Your Peer ID:</strong> {peerDiscovery.getMyPeerId() || 'Not connected'}
+            </div>
+          )}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col items-center">
