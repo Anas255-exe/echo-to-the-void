@@ -1,109 +1,106 @@
 
 import React, { useState } from 'react';
+import { Camera, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Label } from '@/components/ui/label';
-import { toast } from '@/components/ui/use-toast';
-import { User } from '@/lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
-const UserProfile: React.FC<{
+interface UserProfileProps {
   onComplete: (profile: { name: string; avatar?: string }) => void;
-}> = ({ onComplete }) => {
+}
+
+const UserProfile: React.FC<UserProfileProps> = ({ onComplete }) => {
   const [name, setName] = useState('');
   const [avatar, setAvatar] = useState<string | undefined>(undefined);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!name.trim()) {
-      toast({
-        title: "Name required",
-        description: "Please enter your name to continue",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    setIsLoading(true);
-    
-    // Simulate creating profile
-    setTimeout(() => {
-      onComplete({ name, avatar });
-      setIsLoading(false);
-      
-      toast({
-        title: "Profile Created!",
-        description: "Your profile has been set up successfully.",
-      });
-    }, 1000);
+  const handleNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setName(event.target.value);
   };
 
-  // For a real app, we would handle file uploads here
-  const handleAvatarClick = () => {
-    // Simulate avatar selection from a set of defaults
-    const avatars = [
-      'https://i.pravatar.cc/150?img=1',
-      'https://i.pravatar.cc/150?img=2',
-      'https://i.pravatar.cc/150?img=3',
-      'https://i.pravatar.cc/150?img=4',
-    ];
-    
-    const randomAvatar = avatars[Math.floor(Math.random() * avatars.length)];
-    setAvatar(randomAvatar);
+  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setIsUploading(true);
+      
+      // Simulate file upload with delay
+      setTimeout(() => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          setAvatar(e.target?.result as string);
+          setIsUploading(false);
+        };
+        reader.readAsDataURL(file);
+      }, 1000);
+    }
+  };
+
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (name.trim()) {
+      onComplete({ name, avatar });
+    }
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto">
-      <CardHeader className="text-center">
-        <CardTitle className="text-2xl font-bold">Create Your Profile</CardTitle>
-        <CardDescription>
-          Set up your profile to connect with others nearby
-        </CardDescription>
-      </CardHeader>
+    <div className="bg-white p-6 rounded-lg shadow-md">
+      <h2 className="text-2xl font-bold mb-6 text-center">Create Your Profile</h2>
       
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="flex flex-col items-center space-y-3">
-            <Avatar 
-              className="w-24 h-24 cursor-pointer hover:opacity-80 transition-opacity"
-              onClick={handleAvatarClick}
-            >
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="flex flex-col items-center mb-6">
+          <div className="relative mb-4">
+            <Avatar className="w-24 h-24 border-4 border-white shadow-lg">
               <AvatarImage src={avatar} />
-              <AvatarFallback className="bg-echomesh-primary text-white">
-                <User size={36} />
+              <AvatarFallback className="bg-echomesh-primary text-white text-xl">
+                <User size={32} />
               </AvatarFallback>
             </Avatar>
-            <div className="text-sm text-muted-foreground">Tap to change</div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="name">Your Name</Label>
-            <Input
-              id="name"
-              placeholder="Enter your name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-            />
+            
+            <div className="absolute bottom-0 right-0">
+              <Label 
+                htmlFor="avatar-upload" 
+                className="flex items-center justify-center w-8 h-8 rounded-full bg-echomesh-primary text-white cursor-pointer shadow-md"
+              >
+                <Camera size={16} />
+              </Label>
+              <Input 
+                id="avatar-upload" 
+                type="file" 
+                accept="image/*" 
+                className="hidden" 
+                onChange={handleImageChange}
+                disabled={isUploading}
+              />
+            </div>
           </div>
           
-          <Button 
-            type="submit" 
-            className="w-full gradient-bg hover:opacity-90"
-            disabled={isLoading}
-          >
-            {isLoading ? "Creating Profile..." : "Continue"}
-          </Button>
-        </form>
-      </CardContent>
-      
-      <CardFooter className="flex justify-center text-sm text-muted-foreground">
-        Your profile is only stored on this device
-      </CardFooter>
-    </Card>
+          {isUploading && (
+            <span className="text-sm text-gray-500">Uploading...</span>
+          )}
+        </div>
+        
+        <div className="space-y-2">
+          <Label htmlFor="name">Your Name</Label>
+          <Input
+            id="name"
+            placeholder="Enter your name"
+            value={name}
+            onChange={handleNameChange}
+            required
+            className="w-full"
+          />
+        </div>
+        
+        <Button 
+          type="submit" 
+          className="w-full gradient-bg"
+          disabled={!name.trim() || isUploading}
+        >
+          Continue
+        </Button>
+      </form>
+    </div>
   );
 };
 
